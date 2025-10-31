@@ -1,21 +1,57 @@
-echo "__pycache__/
+# ------------------------------
+# General
+# ------------------------------
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.egg-info/
-.env/
+*.swp
+*.bak
+*.tmp
+*.log
+
+# ------------------------------
+# Python Environment
+# ------------------------------
+.env
+.venv
+env/
 venv/
 mlops_env/
-data/
-datasets/
-models/
-mlruns/
-logs/
-*.log
-.dvc/
-.cache/
-.ipynb_checkpoints/
+ENV/
+env.bak/
+venv.bak/
+
+# ------------------------------
+# IDE / Editor
+# ------------------------------
 .vscode/
 .idea/
-.DS_Store
-Thumbs.db" > .gitignore
+*.sublime-workspace
+*.sublime-project
+
+# ------------------------------
+# Data (tracked with DVC)
+# ------------------------------
+data/*
+!data/**/*.dvc
+!data/.gitignore
+
+# ------------------------------
+# Models (tracked with DVC)
+# ------------------------------
+models/*
+!models/**/*.dvc
+!models/.gitignore
+
+# ------------------------------
+# DVC Cache and Temp
+# ------------------------------
+.dvc/tmp/
+.dvc/cache/
+
+# ------------------------------
+# Other
+# ------------------------------
+*.DS_Store
+notebooks/.ipynb_checkpoints/
