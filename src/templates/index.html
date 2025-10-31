@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🩺 Medical Checkup Prediction</title>
+    <style>
+        body {
+            background: radial-gradient(circle at top, #0a192f, #020c1b);
+            color: #e2e8f0;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 40px 60px;
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+            text-align: center;
+            width: 400px;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            color: #00b4d8;
+            margin-bottom: 25px;
+            font-size: 1.6em;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        label {
+            text-align: left;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+
+        input, select {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #00b4d8;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            box-shadow: 0 0 8px #00b4d8;
+        }
+
+        button {
+            background: linear-gradient(to right, #00b4d8, #0077b6);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: linear-gradient(to right, #0096c7, #023e8a);
+        }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .alert {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
+
+        .safe {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid #22c55e;
+            color: #22c55e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🩺 Medical Checkup Prediction</h1>
+
+        <form action="/predict" method="post">
+            <label>Heart Rate (bpm):</label>
+            <input type="number" name="HeartRate" min="30" max="200" step="1"
+                placeholder="Normal: 60–100 bpm" required>
+
+            <label>Temperature (°C):</label>
+            <input type="number" name="Temperature" min="34" max="42" step="0.1"
+                placeholder="Normal: 36.5–37.5 °C" required>
+
+            <label>Blood Pressure (mmHg):</label>
+            <div style="display:flex; gap:10px;">
+                <input type="number" name="Systolic" min="70" max="200" step="1" placeholder="Systolic (120)" required>
+                <input type="number" name="Diastolic" min="40" max="130" step="1" placeholder="Diastolic (80)" required>
+            </div>
+
+            <label>Device ID:</label>
+            <select name="DeviceID">
+                <option>Device_A1</option>
+                <option>Device_B2</option>
+                <option>Device_C3</option>
+            </select>
+
+            <label>Access Type:</label>
+            <select name="AccessType">
+                <option>Mobile</option>
+                <option>Web</option>
+                <option>Tablet</option>
+            </select>
+
+            <label>Action:</label>
+            <select name="Action">
+                <option>Login</option>
+                <option>Checkup</option>
+                <option>Record</option>
+            </select>
+
+            <button type="submit">Predict</button>
+        </form>
+
+        {% if prediction %}
+            <div class="result-box {% if prediction == 1 %}alert{% else %}safe{% endif %}">
+                {% if prediction == 1 %}
+                    ⚠️ Warning! Possible abnormal condition detected.
+                {% else %}
+                    ✅ All vitals appear normal. You’re good!
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('input', () => {
+                const val = parseFloat(input.value);
+                if (val < input.min || val > input.max) {
+                    input.style.border = "2px solid #ef4444";
+                    input.style.background = "rgba(239,68,68,0.1)";
+                } else {
+                    input.style.border = "1px solid #00b4d8";
+                    input.style.background = "rgba(255,255,255,0.1)";
+                }
+            });
+        });
+    </script>
+</body>
+</html>

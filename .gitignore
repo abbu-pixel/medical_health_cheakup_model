@@ -1,0 +1,21 @@
+echo "__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.env/
+venv/
+mlops_env/
+data/
+datasets/
+models/
+mlruns/
+logs/
+*.log
+.dvc/
+.cache/
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db" > .gitignore

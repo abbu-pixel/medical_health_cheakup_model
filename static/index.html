@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Healthcare Prediction Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-blue-100 min-h-screen flex items-center justify-center">
+
+  <div class="bg-white shadow-2xl rounded-2xl p-8 w-full max-w-2xl">
+    <h1 class="text-3xl font-bold text-center text-blue-700 mb-8">
+      🩺 Healthcare Prediction Dashboard
+    </h1>
+
+    <!-- Form -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+      <div>
+        <label class="block text-gray-600 font-medium">Heart Rate (bpm)</label>
+        <input id="HeartRate" type="number" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-gray-600 font-medium">Temperature (°C)</label>
+        <input id="Temperature" type="number" step="0.1" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-gray-600 font-medium">BP Systolic (mmHg)</label>
+        <input id="BloodPressureSystolic" type="number" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-gray-600 font-medium">BP Diastolic (mmHg)</label>
+        <input id="BloodPressureDiastolic" type="number" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-gray-600 font-medium">Oxygen Level (%)</label>
+        <input id="OxygenLevel" type="number" step="0.1" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-gray-600 font-medium">Respiratory Rate (breaths/min)</label>
+        <input id="RespiratoryRate" type="number" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-400">
+      </div>
+    </div>
+
+    <!-- Model selection -->
+    <div class="flex justify-between items-center mb-8">
+      <label class="text-gray-600 font-medium">Model Type:</label>
+      <select id="modelType" class="border p-2 rounded-md focus:ring-2 focus:ring-blue-400">
+        <option value="classification">Classification</option>
+        <option value="regression">Regression</option>
+      </select>
+    </div>
+
+    <!-- Predict Button -->
+    <button id="predictBtn" class="bg-blue-600 text-white w-full py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex justify-center items-center gap-2">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+      Get Prediction
+    </button>
+
+    <!-- Result -->
+    <div id="resultContainer" class="hidden mt-8 text-center bg-blue-50 p-4 rounded-lg border border-blue-200">
+      <h2 class="text-xl font-bold text-blue-700 mb-2">Prediction Result</h2>
+      <p id="predictionOutput" class="text-gray-700 text-lg"></p>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script>
+    const features = [
+      "HeartRate",
+      "Temperature",
+      "BloodPressureSystolic",
+      "BloodPressureDiastolic",
+      "OxygenLevel",
+      "RespiratoryRate"
+    ];
+
+    function isFormComplete() {
+      for (let f of features) {
+        const val = document.getElementById(f).value;
+        if (val === "") {
+          alert("Please fill all input fields!");
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function displayPrediction(prediction) {
+      const container = document.getElementById('resultContainer');
+      const output = document.getElementById('predictionOutput');
+      container.classList.remove('hidden');
+      output.innerHTML = `
+        <strong>Prediction:</strong> ${prediction.prediction} <br>
+        <strong>Confidence:</strong> ${prediction.confidence}% <br>
+        <strong>Model:</strong> ${prediction.modelType}
+      `;
+    }
+
+    document.getElementById('predictBtn').addEventListener('click', async function() {
+      if (!isFormComplete()) return;
+      const btn = this;
+      btn.innerHTML = `<div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> Processing...`;
+      btn.disabled = true;
+
+      const data = {};
+      features.forEach(f => data[f] = parseFloat(document.getElementById(f).value));
+      const modelType = document.getElementById('modelType').value;
+
+      try {
+        const res = await fetch(`http://127.0.0.1:8000/predict/${modelType}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+
+        const prediction = await res.json();
+        displayPrediction(prediction);
+
+      } catch (err) {
+        alert("⚠️ Error connecting to backend: " + err);
+      } finally {
+        btn.innerHTML = `
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg> Get Prediction
+        `;
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
