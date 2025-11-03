@@ -1,0 +1,27 @@
+stages:
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+      - data/processed
+      - models/model.pkl
+      - src/evaluate.py
+    outs:
+      - reports/confusion_matrix.png
+      - reports/metrics.json
+
+  register_model:
+    cmd: python src/register_model.py
+    deps:
+      - models/model.pkl
+      - reports/metrics.json
+    outs:
+      - registry/model_info.json
+
+  train_mlflow:
+    cmd: python src/train_with_mlflow.py
+    deps:
+      - data/processed
+      - src/train_with_mlflow.py
+    outs:
+      - models/model.pkl
+    # params: []  ← removed since your script doesn’t use params.yaml

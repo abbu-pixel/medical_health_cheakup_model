@@ -1,0 +1,60 @@
+schema: '2.0'
+stages:
+  train_mlflow:
+    cmd: python src/train_with_mlflow.py
+    deps:
+    - path: data/processed
+      hash: md5
+      md5: 11b0c890390ffc467abf015b4419723d.dir
+      size: 185500
+      nfiles: 2
+    - path: src/train_with_mlflow.py
+      hash: md5
+      md5: 0a4771776e0d1af589168f6f29e4f335
+      size: 7933
+    outs:
+    - path: models/model.pkl
+      hash: md5
+      md5: 2787edf8d00a86e814449ea02e45d24a
+      size: 975810
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+    - path: data/processed
+      hash: md5
+      md5: 11b0c890390ffc467abf015b4419723d.dir
+      size: 185500
+      nfiles: 2
+    - path: models/model.pkl
+      hash: md5
+      md5: 2787edf8d00a86e814449ea02e45d24a
+      size: 975810
+    - path: src/evaluate.py
+      hash: md5
+      md5: 4618e4488562448aed1a842f6cc6def6
+      size: 2236
+    outs:
+    - path: reports/confusion_matrix.png
+      hash: md5
+      md5: cdff585984a9cbb0bf58123b9db29c78
+      size: 15990
+    - path: reports/metrics.json
+      hash: md5
+      md5: 21a53db6ef3126cb0cf50be696671e76
+      size: 47
+  register_model:
+    cmd: python src/register_model.py
+    deps:
+    - path: models/model.pkl
+      hash: md5
+      md5: 2787edf8d00a86e814449ea02e45d24a
+      size: 975810
+    - path: reports/metrics.json
+      hash: md5
+      md5: 21a53db6ef3126cb0cf50be696671e76
+      size: 47
+    outs:
+    - path: registry/model_info.json
+      hash: md5
+      md5: 10474e72af2d21bc92cf95778fa54e33
+      size: 167
