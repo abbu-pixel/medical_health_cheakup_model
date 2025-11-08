@@ -1,0 +1,26 @@
+schema: '2.0'
+stages:
+  data_collection:
+    cmd: python data_collection.py
+    outs:
+    - path: data/medical_checkup_data.csv
+      hash: md5
+      md5: 0f185e4a510f286d36297728c6c4d642
+      size: 85912225
+  train:
+    cmd: python train_with_mlflow.py
+    deps:
+    - path: data/processed
+      hash: md5
+      md5: 43426ab293ed7ca241690b29becfaaa5.dir
+      size: 35097966
+      nfiles: 6
+    - path: train_with_mlflow.py
+      hash: md5
+      md5: 1438847745c06b0431f7b04d99dfc280
+      size: 4512
+    outs:
+    - path: models/model.pkl
+      hash: md5
+      md5: 1f7243ab3fb234aa5a3fb4e2af500d96
+      size: 994105

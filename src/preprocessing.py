@@ -1,57 +1,47 @@
-import os
 import pandas as pd
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+import os
 
-RAW_DATA_DIR = r"F:\data\raw"
-PROCESSED_DATA_PATH = r"F:\data\processed\final_dataset.csv"
+def preprocess_data(input_file: str, output_dir: str):
+    os.makedirs(output_dir, exist_ok=True)
+    
+    df = pd.read_csv(input_file)
+    print(f"✅ Loaded {len(df)} records from {input_file}")
 
-def merge_datasets():
-    all_data = []
-    for file_name in os.listdir(RAW_DATA_DIR):
-        if file_name.endswith(".csv"):
-            file_path = os.path.join(RAW_DATA_DIR, file_name)
-            df = pd.read_csv(file_path)
-            all_data.append(df)
-    merged_df = pd.concat(all_data, ignore_index=True)
-    merged_df.to_csv(PROCESSED_DATA_PATH, index=False)
-    print(f"✅ Merged dataset saved to {PROCESSED_DATA_PATH}")
-    return merged_df
+    # Split blood pressure into systolic/diastolic
+    bp_split = df["blood_pressure"].astype(str).str.split("/", expand=True)
+    df["systolic_bp"] = pd.to_numeric(bp_split[0], errors="coerce")
+    df["diastolic_bp"] = pd.to_numeric(bp_split[1], errors="coerce")
+    df.drop(columns=["blood_pressure"], inplace=True)
 
-def preprocess_data():
-    df = pd.read_csv(PROCESSED_DATA_PATH)
+    # Encode gender
+    le = LabelEncoder()
+    df["gender"] = le.fit_transform(df["gender"])
 
-    # Drop duplicates and rows with all NaNs
-    df.drop_duplicates(inplace=True)
-    df.dropna(how="all", inplace=True)
+    # Drop non-numeric / irrelevant columns
+    df.drop(columns=["device_id", "checkup_date"], inplace=True, errors="ignore")
 
-    # Example: drop irrelevant columns if they exist
-    drop_cols = ["Patient ID", "Timestamp", "IP Address"]
-    df = df.drop(columns=[col for col in drop_cols if col in df.columns])
+    # Drop any rows with missing values
+    df.dropna(inplace=True)
 
-    # Separate target variable if it exists
-    target_col = "Target" if "Target" in df.columns else None
-    X = df.drop(columns=[target_col]) if target_col else df
-    y = df[target_col] if target_col else None
+    # Split features and target
+    X = df.drop(columns=["status"])
+    y = df["status"]
 
-    # Identify numeric and categorical columns
-    num_cols = X.select_dtypes(include=["int64", "float64"]).columns
-    cat_cols = X.select_dtypes(include=["object"]).columns
-
-    # Define preprocessing
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ("num", StandardScaler(), num_cols),
-            ("cat", OneHotEncoder(handle_unknown="ignore"), cat_cols)
-        ]
+    # Train-test split
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
     )
 
-    X_processed = preprocessor.fit_transform(X)
+    # Save processed data
+    X_train.to_csv(os.path.join(output_dir, "X_train.csv"), index=False)
+    X_test.to_csv(os.path.join(output_dir, "X_test.csv"), index=False)
+    y_train.to_csv(os.path.join(output_dir, "y_train.csv"), index=False)
+    y_test.to_csv(os.path.join(output_dir, "y_test.csv"), index=False)
 
-    print("✅ Preprocessing completed successfully!")
-    return X_processed, y
+    print(f"✅ Preprocessed data saved in {output_dir}")
 
 if __name__ == "__main__":
-    merge_datasets()
-    preprocess_data()
+    # Fix: correct relative paths for DVC run location
+    preprocess_data("data/raw/medical_data.csv", "data/processed")

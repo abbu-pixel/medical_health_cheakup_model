@@ -1,58 +1,16 @@
-# ------------------------------
-# General
-# ------------------------------
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.swp
-*.bak
-*.tmp
-*.log
+# Ignore MLflow runs
+mlruns/
+src/mlruns/
 
-# ------------------------------
-# Python Environment
-# ------------------------------
-.env
-.venv
-env/
-venv/
-mlops_env/
-ENV/
-env.bak/
-venv.bak/
-
-# ------------------------------
-# IDE / Editor
-# ------------------------------
-.vscode/
-.idea/
-*.sublime-workspace
-*.sublime-project
-
-# ------------------------------
-# Data (tracked with DVC)
-# ------------------------------
-data/*
-!data/**/*.dvc
-!data/.gitignore
-
-# ------------------------------
-# Models (tracked with DVC)
-# ------------------------------
-models/*
-!models/**/*.dvc
-!models/.gitignore
-
-# ------------------------------
-# DVC Cache and Temp
-# ------------------------------
-.dvc/tmp/
+# Ignore DVC cache
 .dvc/cache/
 
-# ------------------------------
-# Other
-# ------------------------------
-*.DS_Store
-notebooks/.ipynb_checkpoints/
-/data
+# Python/venv stuff
+__pycache__/
+*.pyc
+*.pkl
+.env/
+mlops_env/
+*.log
+models/
+data/

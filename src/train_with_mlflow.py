@@ -1,146 +1,134 @@
+import os
 import pandas as pd
-import numpy as np
 import mlflow
 import mlflow.sklearn
-import mlflow.keras
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
+import mlflow.xgboost
+import mlflow.tensorflow
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
 from xgboost import XGBClassifier
-from sklearn.metrics import accuracy_score, f1_score
-from tensorflow import keras
-import scipy.sparse
+from sklearn.preprocessing import StandardScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Input
+from tensorflow.keras.callbacks import EarlyStopping
+import joblib
 
-# ✅ Load dataset
-data_path = r"F:\data\processed\final_dataset.csv"
-df = pd.read_csv(data_path)
+# -------------------------------------------------------------------
+# 📍 Automatically determine project base directory (2 levels up)
+# -------------------------------------------------------------------
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, "data", "processed")
+MODELS_DIR = os.path.join(BASE_DIR, "models")
 
-print("✅ Dataset loaded:", df.shape)
-print("Columns:", df.columns.tolist())
-
-# ✅ Clean dataset
-drop_cols = [c for c in df.columns if 'Patient ID' in c or 'Timestamp' in c or 'IP' in c]
-df = df.drop(columns=drop_cols, errors='ignore')
-
-# Ensure target column exists
-if 'Target' not in df.columns:
-    raise ValueError("❌ Target column not found. Check your CSV file.")
-
-# Drop rows where Target is missing
-df = df.dropna(subset=['Target'])
-
-# ✅ Separate features and target
-X = df.drop('Target', axis=1)
-y = df['Target']
-
-# ✅ Identify numeric/categorical columns
-num_cols = X.select_dtypes(include=['int64', 'float64']).columns
-cat_cols = X.select_dtypes(exclude=['int64', 'float64']).columns
-
-# ✅ Define preprocessing
-numeric_transformer = StandardScaler()
-categorical_transformer = OneHotEncoder(handle_unknown='ignore', sparse_output=True)
-
-preprocessor = ColumnTransformer([
-    ('num', numeric_transformer, num_cols),
-    ('cat', categorical_transformer, cat_cols)
-])
-
-# ✅ Train-test split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
+# -------------------------------------------------------------------
+# ⚙️ Configure MLflow
+# -------------------------------------------------------------------
+mlflow.set_tracking_uri(f"file:///{os.path.join(BASE_DIR, 'mlruns')}")
 mlflow.set_experiment("medical_checkup_models")
 
-# -----------------------------
-# RANDOM FOREST MODELS
-# -----------------------------
-rf_params = [
-    {"n_estimators": 100, "max_depth": 5},
-    {"n_estimators": 200, "max_depth": 10},
-    {"n_estimators": 300, "max_depth": 15},
-]
+# -------------------------------------------------------------------
+# 🚀 Training Function
+# -------------------------------------------------------------------
+def train_models(processed_data_dir: str):
+    print(f"📂 Loading data from: {processed_data_dir}")
 
-for p in rf_params:
-    with mlflow.start_run(run_name=f"RandomForest_{p['n_estimators']}"):
-        model = Pipeline([
-            ("preprocessor", preprocessor),
-            ("classifier", RandomForestClassifier(**p, random_state=42))
-        ])
+    # ✅ Load preprocessed datasets
+    X_train = pd.read_csv(os.path.join(processed_data_dir, "X_train.csv"))
+    X_test = pd.read_csv(os.path.join(processed_data_dir, "X_test.csv"))
+    y_train = pd.read_csv(os.path.join(processed_data_dir, "y_train.csv")).values.ravel()
+    y_test = pd.read_csv(os.path.join(processed_data_dir, "y_test.csv")).values.ravel()
+
+    results = {}
+    trained_models = {}
+
+    # 1️⃣ RandomForest
+    with mlflow.start_run(run_name="RandomForest") as run:
+        params = {"n_estimators": 150, "max_depth": 10, "random_state": 42}
+        model = RandomForestClassifier(**params)
         model.fit(X_train, y_train)
         preds = model.predict(X_test)
         acc = accuracy_score(y_test, preds)
-        f1 = f1_score(y_test, preds, average="weighted")
-        mlflow.log_params(p)
-        mlflow.log_metrics({"accuracy": acc, "f1": f1})
+
+        mlflow.log_params(params)
+        mlflow.log_metric("accuracy", acc)
         mlflow.sklearn.log_model(model, "model")
-        print(f"✅ RF {p} → acc={acc:.3f}, f1={f1:.3f}")
 
-# -----------------------------
-# XGBOOST MODELS
-# -----------------------------
-xgb_params = [
-    {"n_estimators": 100, "max_depth": 3, "learning_rate": 0.1},
-    {"n_estimators": 200, "max_depth": 5, "learning_rate": 0.05},
-    {"n_estimators": 300, "max_depth": 7, "learning_rate": 0.01},
-]
+        results["RandomForest"] = {"acc": acc, "run_id": run.info.run_id}
+        trained_models["RandomForest"] = model
+        print(f"✅ RandomForest: {acc:.4f}")
 
-for p in xgb_params:
-    with mlflow.start_run(run_name=f"XGBoost_{p['n_estimators']}"):
-        model = Pipeline([
-            ("preprocessor", preprocessor),
-            ("classifier", XGBClassifier(**p, use_label_encoder=False, eval_metric='logloss', random_state=42))
-        ])
+    # 2️⃣ XGBoost
+    with mlflow.start_run(run_name="XGBoost") as run:
+        params = {
+            "n_estimators": 200,
+            "learning_rate": 0.1,
+            "max_depth": 8,
+            "eval_metric": "logloss",
+            "random_state": 42
+        }
+        model = XGBClassifier(**params)
         model.fit(X_train, y_train)
         preds = model.predict(X_test)
         acc = accuracy_score(y_test, preds)
-        f1 = f1_score(y_test, preds, average="weighted")
-        mlflow.log_params(p)
-        mlflow.log_metrics({"accuracy": acc, "f1": f1})
-        mlflow.sklearn.log_model(model, "model")
-        print(f"✅ XGB {p} → acc={acc:.3f}, f1={f1:.3f}")
 
-# -----------------------------
-# ANN MODELS (Fixed)
-# -----------------------------
-def create_ann(input_dim, hidden_units=32, lr=0.001):
-    model = keras.Sequential([
-        keras.layers.Input(shape=(input_dim,)),
-        keras.layers.Dense(hidden_units, activation='relu'),
-        keras.layers.Dense(hidden_units // 2, activation='relu'),
-        keras.layers.Dense(1, activation='sigmoid')
-    ])
-    model.compile(optimizer=keras.optimizers.Adam(learning_rate=lr),
-                  loss='binary_crossentropy', metrics=['accuracy'])
-    return model
+        mlflow.log_params(params)
+        mlflow.log_metric("accuracy", acc)
+        mlflow.xgboost.log_model(model, "model")
 
-# Preprocess data
-X_train_prep = preprocessor.fit_transform(X_train)
-X_test_prep = preprocessor.transform(X_test)
+        results["XGBoost"] = {"acc": acc, "run_id": run.info.run_id}
+        trained_models["XGBoost"] = model
+        print(f"✅ XGBoost: {acc:.4f}")
 
-# ✅ Convert sparse → dense for TensorFlow
-if scipy.sparse.issparse(X_train_prep):
-    X_train_prep = X_train_prep.toarray()
-if scipy.sparse.issparse(X_test_prep):
-    X_test_prep = X_test_prep.toarray()
+    # 3️⃣ ANN
+    with mlflow.start_run(run_name="ANN") as run:
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
 
-input_dim = X_train_prep.shape[1]
+        model = Sequential([
+            Input(shape=(X_train.shape[1],)),
+            Dense(64, activation='relu'),
+            Dense(32, activation='relu'),
+            Dense(1, activation='sigmoid')
+        ])
+        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+        es = EarlyStopping(patience=3, restore_best_weights=True)
 
-ann_params = [
-    {"hidden_units": 32, "lr": 0.001},
-    {"hidden_units": 64, "lr": 0.0005},
-    {"hidden_units": 128, "lr": 0.0001},
-]
+        model.fit(X_train_scaled, y_train, validation_split=0.2, epochs=10, batch_size=32, verbose=1, callbacks=[es])
+        _, acc = model.evaluate(X_test_scaled, y_test, verbose=0)
 
-for p in ann_params:
-    with mlflow.start_run(run_name=f"ANN_{p['hidden_units']}"):
-        model = create_ann(input_dim, **p)
-        model.fit(X_train_prep, y_train, epochs=10, batch_size=32, verbose=0)
-        loss, acc = model.evaluate(X_test_prep, y_test, verbose=0)
-        mlflow.log_params(p)
-        mlflow.log_metrics({"accuracy": acc})
-        mlflow.keras.log_model(model, "model")
-        print(f"✅ ANN {p} → acc={acc:.3f}")
+        mlflow.log_params({"layers": [64, 32], "activation": "relu", "epochs": 10, "batch_size": 32})
+        mlflow.log_metric("accuracy", acc)
+        mlflow.tensorflow.log_model(model, "model")
 
-print("\n🎯 Training completed successfully! Run `mlflow ui --port 5000` to view logs.")
+        results["ANN"] = {"acc": acc, "run_id": run.info.run_id}
+        trained_models["ANN"] = model
+        print(f"✅ ANN: {acc:.4f}")
+
+    # 🏆 Determine best model
+    best_model_name, best_info = max(results.items(), key=lambda x: x[1]["acc"])
+    print(f"\n🏆 Best Model: {best_model_name} ({best_info['acc']:.4f})")
+
+    best_model = trained_models[best_model_name]
+
+    # ✅ Try to register best model in MLflow Model Registry
+    try:
+        mlflow.register_model(
+            model_uri=f"runs:/{best_info['run_id']}/model",
+            name=f"MedicalCheckup_{best_model_name}"
+        )
+        print(f"✅ Registered best model: MedicalCheckup_{best_model_name}")
+    except Exception as e:
+        print(f"⚠️ Registry skipped (local MLflow): {e}")
+
+    # 💾 Save best model locally for DVC tracking
+    os.makedirs(MODELS_DIR, exist_ok=True)
+    model_path = os.path.join(MODELS_DIR, "model.pkl")
+    joblib.dump(best_model, model_path)
+    print(f"✅ Model saved locally at: {model_path}")
+
+# -------------------------------------------------------------------
+# 🏁 Entry Point
+# -------------------------------------------------------------------
+if __name__ == "__main__":
+    train_models(DATA_DIR)

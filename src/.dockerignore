@@ -1,0 +1,12 @@
+# Ignore large and unnecessary folders
+.dvc/
+mlruns/
+__pycache__/
+*.pyc
+*.pkl
+*.log
+reports/
+registry/
+data/
+rclone/
+service_account.json

@@ -3,20 +3,31 @@ stages:
   train_mlflow:
     cmd: python src/train_with_mlflow.py
     deps:
-    - path: data/processed
+    - path: data/processed/X_test.csv
       hash: md5
-      md5: 11b0c890390ffc467abf015b4419723d.dir
-      size: 185500
-      nfiles: 2
+      md5: 729aeee5a2370e4d2b89c9f0deef4558
+      size: 6382680
+    - path: data/processed/X_train.csv
+      hash: md5
+      md5: 34cc68c9e0dbd52d2a8af62e5fdf6549
+      size: 25529770
+    - path: data/processed/y_test.csv
+      hash: md5
+      md5: 1bc41cd1e45eecdbd0023ecd613a3c77
+      size: 600008
+    - path: data/processed/y_train.csv
+      hash: md5
+      md5: 4693fe7313b4105f1f9c95dd5fd26bc0
+      size: 2400008
     - path: src/train_with_mlflow.py
       hash: md5
-      md5: 0a4771776e0d1af589168f6f29e4f335
-      size: 7933
+      md5: 8c339991d22cab1e8fce36a446fd7c16
+      size: 5456
     outs:
     - path: models/model.pkl
       hash: md5
-      md5: 2787edf8d00a86e814449ea02e45d24a
-      size: 975810
+      md5: 1f7243ab3fb234aa5a3fb4e2af500d96
+      size: 994105
   evaluate:
     cmd: python src/evaluate.py
     deps:
