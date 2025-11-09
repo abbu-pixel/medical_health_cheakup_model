@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: medical-checkup-mlops
+    env: docker
+    region: oregon
+    plan: free
+    branch: main
+    autoDeploy: true

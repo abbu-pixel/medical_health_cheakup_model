@@ -1,15 +1,18 @@
+# 🐍 Base image
 FROM python:3.10-slim
 
+# 📁 Create app directory
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-COPY requirements.txt .
+# 🧠 Copy files
+COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# 📦 Copy project files
 COPY . .
 
-EXPOSE 8080
+# ⚙️ Expose Streamlit port
+EXPOSE 8501
 
-CMD ["python", "src/app.py"]
+# 🏃 Run Streamlit app
+CMD ["streamlit", "run", "src/app.py", "--server.port=8501", "--server.address=0.0.0.0"]

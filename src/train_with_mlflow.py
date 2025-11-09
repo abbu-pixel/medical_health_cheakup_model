@@ -12,27 +12,28 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Input
 from tensorflow.keras.callbacks import EarlyStopping
 import joblib
+import json
 
 # -------------------------------------------------------------------
-# 📍 Automatically determine project base directory (2 levels up)
+# 📍 Determine project paths
 # -------------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data", "processed")
 MODELS_DIR = os.path.join(BASE_DIR, "models")
+MLRUNS_DIR = os.path.join(BASE_DIR, "mlruns")
 
 # -------------------------------------------------------------------
-# ⚙️ Configure MLflow
+# ⚙️ Configure MLflow (local or remote)
 # -------------------------------------------------------------------
-mlflow.set_tracking_uri(f"file:///{os.path.join(BASE_DIR, 'mlruns')}")
+mlflow.set_tracking_uri(f"file:///{MLRUNS_DIR}")
 mlflow.set_experiment("medical_checkup_models")
 
 # -------------------------------------------------------------------
-# 🚀 Training Function
+# 🚀 Train multiple models and log to MLflow
 # -------------------------------------------------------------------
 def train_models(processed_data_dir: str):
     print(f"📂 Loading data from: {processed_data_dir}")
 
-    # ✅ Load preprocessed datasets
     X_train = pd.read_csv(os.path.join(processed_data_dir, "X_train.csv"))
     X_test = pd.read_csv(os.path.join(processed_data_dir, "X_test.csv"))
     y_train = pd.read_csv(os.path.join(processed_data_dir, "y_train.csv")).values.ravel()
@@ -111,21 +112,28 @@ def train_models(processed_data_dir: str):
 
     best_model = trained_models[best_model_name]
 
-    # ✅ Try to register best model in MLflow Model Registry
+    # ✅ Try registering model
     try:
         mlflow.register_model(
             model_uri=f"runs:/{best_info['run_id']}/model",
             name=f"MedicalCheckup_{best_model_name}"
         )
-        print(f"✅ Registered best model: MedicalCheckup_{best_model_name}")
+        print(f"✅ Registered model: MedicalCheckup_{best_model_name}")
     except Exception as e:
         print(f"⚠️ Registry skipped (local MLflow): {e}")
 
-    # 💾 Save best model locally for DVC tracking
+    # 💾 Save locally
     os.makedirs(MODELS_DIR, exist_ok=True)
-    model_path = os.path.join(MODELS_DIR, "model.pkl")
+    model_path = os.path.join(MODELS_DIR, f"{best_model_name}_model.pkl")
     joblib.dump(best_model, model_path)
-    print(f"✅ Model saved locally at: {model_path}")
+
+    # 🧾 Save results metadata for CI/CD artifacts
+    metadata_path = os.path.join(MODELS_DIR, "metadata.json")
+    with open(metadata_path, "w") as f:
+        json.dump({"best_model": best_model_name, "accuracy": best_info["acc"]}, f, indent=4)
+
+    print(f"✅ Saved model at: {model_path}")
+    print(f"🧾 Metadata stored at: {metadata_path}")
 
 # -------------------------------------------------------------------
 # 🏁 Entry Point
