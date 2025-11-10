@@ -21,13 +21,19 @@ stages:
       size: 2400008
     - path: src/train_with_mlflow.py
       hash: md5
-      md5: 8c339991d22cab1e8fce36a446fd7c16
-      size: 5456
+      md5: 6e3f7f5c97838a9036d29df759b08261
+      size: 5782
     outs:
-    - path: models/model.pkl
+    - path: mlruns/
       hash: md5
-      md5: 1f7243ab3fb234aa5a3fb4e2af500d96
-      size: 994105
+      md5: 516e79595d55b82e13ae2d7e9d981753.dir
+      size: 1228891
+      nfiles: 87
+    - path: models/
+      hash: md5
+      md5: a671a9866969504b2e6282f9d58b57b4.dir
+      size: 994165
+      nfiles: 2
   evaluate:
     cmd: python src/evaluate.py
     deps:

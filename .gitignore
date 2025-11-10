@@ -15,3 +15,5 @@ mlops_env/
 models/
 data/
 "config/service_account.json" 
+/models
+/mlruns
