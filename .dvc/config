@@ -1,4 +1,4 @@
 [core]
-    remote = local_remote
-['remote "local_remote"']
-    url = F:\mlops_project\dvc_storage
+    remote = myremote
+['remote "myremote"']
+    url = gdrive://1id52811XiCfyVLmRPyonx0XFrn9gSS5i
