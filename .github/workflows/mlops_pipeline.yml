@@ -1,15 +1,17 @@
-name: CI-CD MLOps Pipeline
+name: DVC Pipeline
 
 on:
   push:
     branches:
       - main
+  pull_request:
 
 jobs:
-  build-and-train:
+  dvc-pipeline:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Python
@@ -19,16 +21,8 @@ jobs:
 
       - name: Install dependencies
         run: |
+          pip install dvc
           pip install -r requirements.txt
-          pip install dvc[all] mlflow
 
-      - name: Reproduce pipeline with DVC
+      - name: Reproduce DVC pipeline
         run: dvc repro
-
-      - name: Commit model artifacts
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add models/ data/ mlruns/ -f || true
-          git commit -m "Auto retrained model" || echo "No changes to commit"
-          git push || echo "No push needed"
