@@ -8,4 +8,5 @@ stages:
       - data/processed/y_train.csv
       - data/processed/y_test.csv
     outs:
-      - models/model.pkl
+      - models/
+      - mlruns/

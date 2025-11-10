@@ -1,46 +1,34 @@
-name: MLOps Auto Retrain
+name: CI-CD MLOps Pipeline
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:   # allows manual trigger from Actions tab
 
 jobs:
-  retrain:
+  build-and-train:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: '3.10'
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install mlflow
+          pip install dvc[all] mlflow
 
-      - name: Run model training
+      - name: Reproduce pipeline with DVC
+        run: dvc repro
+
+      - name: Commit model artifacts
         run: |
-          echo "🚀 Starting retraining process"
-          python src/retrain.py || python src/train_with_mlflow.py
-
-      - name: Save metrics
-        if: success()
-        run: |
-          mkdir -p reports
-          echo "Training completed at $(date)" >> reports/training_log.txt
-
-      - name: Upload training artifacts
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: model-artifacts
-          path: |
-            reports/
-            metrics/
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add models/ data/ mlruns/ -f || true
+          git commit -m "Auto retrained model" || echo "No changes to commit"
+          git push || echo "No push needed"

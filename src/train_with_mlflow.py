@@ -15,21 +15,26 @@ import joblib
 import json
 
 # -------------------------------------------------------------------
-# 📍 Determine project paths
+# 📍 Project Paths (always relative to repo root)
 # -------------------------------------------------------------------
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DATA_DIR = os.path.join(BASE_DIR, "data", "processed")
 MODELS_DIR = os.path.join(BASE_DIR, "models")
 MLRUNS_DIR = os.path.join(BASE_DIR, "mlruns")
 
-# -------------------------------------------------------------------
-# ⚙️ Configure MLflow (local or remote)
-# -------------------------------------------------------------------
-mlflow.set_tracking_uri(f"file:///{MLRUNS_DIR}")
-mlflow.set_experiment("medical_checkup_models")
+os.makedirs(MLRUNS_DIR, exist_ok=True)
+os.makedirs(MODELS_DIR, exist_ok=True)
 
 # -------------------------------------------------------------------
-# 🚀 Train multiple models and log to MLflow
+# ⚙️ Configure MLflow for Local + Render (portable)
+# -------------------------------------------------------------------
+mlflow.set_tracking_uri("file:///" + MLRUNS_DIR.replace("\\", "/"))
+mlflow.set_experiment("medical_checkup_models")
+
+print(f"✅ MLflow Tracking Directory: {MLRUNS_DIR}")
+
+# -------------------------------------------------------------------
+# 🚀 Train and Log Models
 # -------------------------------------------------------------------
 def train_models(processed_data_dir: str):
     print(f"📂 Loading data from: {processed_data_dir}")
@@ -106,34 +111,28 @@ def train_models(processed_data_dir: str):
         trained_models["ANN"] = model
         print(f"✅ ANN: {acc:.4f}")
 
-    # 🏆 Determine best model
+    # 🏆 Choose best model
     best_model_name, best_info = max(results.items(), key=lambda x: x[1]["acc"])
+    best_model = trained_models[best_model_name]
     print(f"\n🏆 Best Model: {best_model_name} ({best_info['acc']:.4f})")
 
-    best_model = trained_models[best_model_name]
-
-    # ✅ Try registering model
-    try:
-        mlflow.register_model(
-            model_uri=f"runs:/{best_info['run_id']}/model",
-            name=f"MedicalCheckup_{best_model_name}"
-        )
-        print(f"✅ Registered model: MedicalCheckup_{best_model_name}")
-    except Exception as e:
-        print(f"⚠️ Registry skipped (local MLflow): {e}")
-
-    # 💾 Save locally
-    os.makedirs(MODELS_DIR, exist_ok=True)
+    # 🧾 Save model + metadata
     model_path = os.path.join(MODELS_DIR, f"{best_model_name}_model.pkl")
     joblib.dump(best_model, model_path)
 
-    # 🧾 Save results metadata for CI/CD artifacts
     metadata_path = os.path.join(MODELS_DIR, "metadata.json")
     with open(metadata_path, "w") as f:
         json.dump({"best_model": best_model_name, "accuracy": best_info["acc"]}, f, indent=4)
 
     print(f"✅ Saved model at: {model_path}")
     print(f"🧾 Metadata stored at: {metadata_path}")
+
+    # 🧠 Try model registry safely
+    try:
+        mlflow.register_model(model_uri=f"runs:/{best_info['run_id']}/model", name=f"MedicalCheckup_{best_model_name}")
+        print(f"✅ Registered model: MedicalCheckup_{best_model_name}")
+    except Exception as e:
+        print(f"⚠️ Model registry skipped (likely local MLflow): {e}")
 
 # -------------------------------------------------------------------
 # 🏁 Entry Point
