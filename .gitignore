@@ -1,22 +1,50 @@
-# Ignore MLflow runs
+# ===============================
+# 🧠 MLOps Project .gitignore
+# ===============================
+
+# --- MLflow ---
 mlruns/
 src/mlruns/
 
-# Ignore DVC cache
+# --- DVC ---
 .dvc/cache/
+dvc_storage/
+dvc_env/
 
-# Python/venv stuff
+# --- Environment & Python cache ---
 __pycache__/
 *.pyc
+*.pyo
 *.pkl
+*.log
 .env/
 mlops_env/
-*.log
+venv/
+*.egg-info/
+
+# --- Models ---
 models/
+!models/metadata.json     # Keep metadata only (optional)
 
+# --- Streamlit / Flask runtime ---
+*.db
+*.sqlite3
+instance/
+.DS_Store
+
+# --- Config / Secrets ---
+service_account.json
+service_account_new.json
 config/service_account.json
-/models
-/mlruns
 
-/data
-service_account_new.json 
+# --- Data ---
+data/*
+!data/processed/
+!data/processed/*.csv    # ✅ Keep only processed sample data for CI/CD
+!data/.gitkeep           # Optional placeholder file
+
+# --- OS / IDE ---
+.vscode/
+.idea/
+*.swp
+Thumbs.db
