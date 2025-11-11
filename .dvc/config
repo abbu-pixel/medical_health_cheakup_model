@@ -1,4 +1,7 @@
 [core]
     remote = myremote
 ['remote "myremote"']
-    url = gdrive://1id52811XiCfyVLmRPyonx0XFrn9gSS5i
+    url = s3://my-bucket-name/path
+    region = us-east-1
+['remote "localremote"']
+    url = F:\mlops_project\dvc_storage

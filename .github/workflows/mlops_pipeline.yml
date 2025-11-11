@@ -1,13 +1,12 @@
-name: DVC Pipeline
+name: ML CI/CD
 
 on:
   push:
     branches:
       - main
-  pull_request:
 
 jobs:
-  dvc-pipeline:
+  retrain-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,12 +16,21 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: 3.12
 
       - name: Install dependencies
         run: |
-          pip install dvc
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Reproduce DVC pipeline
-        run: dvc repro
+      - name: Train models
+        run: |
+          python src/train_with_mlflow.py
+
+      - name: Commit and Push Trained Model
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add models/* || true
+          git commit -m "Auto retrain: update model [skip ci]" || echo "No changes to commit"
+          git push
