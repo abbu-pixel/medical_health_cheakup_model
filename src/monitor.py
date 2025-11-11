@@ -1,7 +1,8 @@
-import os
-from evidently import Report
-from evidently.metric_preset import DataDriftPreset, DataQualityPreset
 import pandas as pd
+from evidently import Report
+from evidently.metrics import DataDriftPreset, DataQualityPreset
+import json
+import os
 
 # Paths
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
