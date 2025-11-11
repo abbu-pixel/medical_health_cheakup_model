@@ -1,3 +1,4 @@
+evidently
 streamlit
 mlflow
 xgboost
