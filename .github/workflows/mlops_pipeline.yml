@@ -47,16 +47,16 @@ jobs:
       # 📊 Step 6: Generate Evidently drift report
       - name: Generate Evidently Drift Report
         run: |
-          python src/monitor_model.py
+          python src/monitor.py
 
-      # 💾 Step 7: Commit and push new trained models
-      - name: Commit and push trained model
+      # 💾 Step 7: Commit and push new trained models & reports
+      - name: Commit and push trained model and reports
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -f models/*
           git add -f reports/*
-          git commit -m "🤖 Auto retrain: updated model & monitoring [skip ci]" || echo "No changes to commit"
+          git commit -m "🤖 Auto retrain: updated model & drift report [skip ci]" || echo "No changes to commit"
           git push origin main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -87,6 +87,23 @@ def predict():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+@app.route("/monitor", methods=["GET"])
+def monitor_report():
+    """Serve the Evidently data drift report as HTML."""
+    report_path = os.path.join(os.path.dirname(__file__), "..", "reports", "data_drift_report.html")
+
+    if os.path.exists(report_path):
+        with open(report_path, "r", encoding="utf-8") as f:
+            html = f.read()
+        # Optional auto-refresh every 10 seconds
+        html = html.replace(
+            "<head>",
+            "<head><meta http-equiv='refresh' content='10'>"
+        )
+        return html
+    else:
+        return "<h3 style='color:red;'>❌ Drift report not found. Please check your CI/CD pipeline or run monitor.py manually.</h3>"
+
 
 # -----------------------------
 # 🚀 Run Server
