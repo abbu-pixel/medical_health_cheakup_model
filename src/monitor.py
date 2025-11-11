@@ -1,6 +1,6 @@
 import os
-from evidently.report import Report
-from evidently.metric_preset import DataDriftPreset
+from evidently import Report
+from evidently.metric_preset import DataDriftPreset, DataQualityPreset
 import pandas as pd
 
 # Paths
