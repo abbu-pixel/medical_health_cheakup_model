@@ -1,5 +1,5 @@
 # ===============================
-# 🧠 MLOps Project .gitignore
+# 🚀 MLOps Project .gitignore
 # ===============================
 
 # --- MLflow ---
@@ -11,20 +11,25 @@ src/mlruns/
 dvc_storage/
 dvc_env/
 
-# --- Environment & Python cache ---
+# --- Python / Virtual Environment ---
 __pycache__/
 *.pyc
 *.pyo
-*.pkl
 *.log
 .env/
 mlops_env/
 venv/
 *.egg-info/
 
-# --- Models ---
-models/
-!models/metadata.json     # Keep metadata only (optional)
+# --- Model Artifacts (DVC managed) ---
+models/*
+!models/*.dvc
+!models/.gitignore
+!models/metadata.json
+
+# --- Serialized Files ---
+*.pkl
+*.joblib
 
 # --- Streamlit / Flask runtime ---
 *.db
@@ -40,10 +45,10 @@ config/service_account.json
 # --- Data ---
 data/*
 !data/processed/
-!data/processed/*.csv    # ✅ Keep only processed sample data for CI/CD
-!data/.gitkeep           # Optional placeholder file
+!data/processed/*.csv      # Keep only processed sample data for CI/CD
+!data/.gitkeep             # Optional placeholder
 
-# --- OS / IDE ---
+# --- IDE / OS files ---
 .vscode/
 .idea/
 *.swp
