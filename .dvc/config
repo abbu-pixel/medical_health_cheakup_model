@@ -1,7 +1,7 @@
 [core]
+    no_scm = True
     remote = myremote
+[cache]
+    type = copy
 ['remote "myremote"']
-    url = s3://my-bucket-name/path
-    region = us-east-1
-['remote "localremote"']
-    url = F:\mlops_project\dvc_storage
+    url = F:\dvc_storage

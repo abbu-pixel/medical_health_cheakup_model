@@ -44,4 +44,5 @@ def preprocess_data(input_file: str, output_dir: str):
 
 if __name__ == "__main__":
     # Fix: correct relative paths for DVC run location
-    preprocess_data("data/raw/medical_data.csv", "data/processed")
+  preprocess_data("data/raw/medical_checkup_data.csv", "src/data/processed")
+

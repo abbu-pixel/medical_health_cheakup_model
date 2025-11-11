@@ -1,45 +1,83 @@
 import streamlit as st
-import mlflow.pyfunc
 import pandas as pd
+import joblib
+import os
+import json
+from glob import glob
 
-# Load the latest production model from MLflow
-MODEL_PATH = "./model_local"
-st.sidebar.info(f"🔍 Loading model from MLflow: {MODEL_PATH} ...")
-model = mlflow.pyfunc.load_model(MODEL_PATH)
+# -----------------------------
+# 📁 Paths
+# -----------------------------
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+MODELS_DIR = os.path.join(BASE_DIR, "models")
 
-st.title("Medical Checkup Prediction 🚑")
+METADATA_FILENAME = "metadata.json"
+METADATA_PATH = os.path.join(MODELS_DIR, METADATA_FILENAME)
 
-st.header("Enter Patient Details:")
+# -----------------------------
+# ⚠️ Load Latest Model
+# -----------------------------
+def get_latest_model(models_dir):
+    model_files = glob(os.path.join(models_dir, "*_model.pkl"))
+    if not model_files:
+        return None
+    # Sort by modified time, latest first
+    model_files.sort(key=os.path.getmtime, reverse=True)
+    return model_files[0]
+
+def load_model(model_path):
+    if not os.path.exists(model_path):
+        st.error(f"❌ Model file not found: {model_path}")
+        return None
+    try:
+        model = joblib.load(model_path)
+        return model
+    except Exception as e:
+        st.error(f"❌ Error loading model: {e}")
+        return None
+
+MODEL_PATH = get_latest_model(MODELS_DIR)
+model = load_model(MODEL_PATH)
+
+# -----------------------------
+# ⚙️ Streamlit UI
+# -----------------------------
+st.title("🩺 Medical Checkup Prediction")
+st.markdown("This app predicts the health checkup status based on patient data.")
 
 # Input fields
 age = st.number_input("Age", min_value=0, max_value=120, value=30)
-gender = st.selectbox("Gender", options=[0, 1], help="0 = Male, 1 = Female")
+gender = st.selectbox("Gender", options=["Male", "Female"])
+systolic_bp = st.number_input("Systolic BP", min_value=50, max_value=250, value=120)
+diastolic_bp = st.number_input("Diastolic BP", min_value=30, max_value=150, value=80)
 heart_rate = st.number_input("Heart Rate (bpm)", min_value=30, max_value=200, value=70)
-temperature = st.number_input("Temperature (°C)", min_value=35.0, max_value=42.0, value=37.0)
-oxygen_level = st.number_input("Oxygen Level (%)", min_value=50, max_value=100, value=98)
-glucose_level = st.number_input("Glucose Level (mg/dL)", min_value=50, max_value=400, value=90)
-cholesterol = st.number_input("Cholesterol (mg/dL)", min_value=100, max_value=400, value=180)
-systolic_bp = st.number_input("Systolic BP", min_value=80, max_value=200, value=120)
-diastolic_bp = st.number_input("Diastolic BP", min_value=50, max_value=150, value=80)
+temperature = st.number_input("Temperature (°C)", min_value=30.0, max_value=45.0, value=37.0)
 
-# Predict button
+# Encode gender
+gender_map = {"Male": 1, "Female": 0}
+gender_encoded = gender_map[gender]
+
+# Prepare feature dataframe
+input_df = pd.DataFrame(
+    [[age, gender_encoded, systolic_bp, diastolic_bp, heart_rate, temperature]],
+    columns=["age", "gender", "systolic_bp", "diastolic_bp", "heart_rate", "temperature"]
+)
+
+# Prediction
 if st.button("Predict"):
-    try:
-        input_df = pd.DataFrame([{
-            "age": age,
-            "gender": gender,
-            "heart_rate": heart_rate,
-            "temperature": temperature,
-            "oxygen_level": oxygen_level,
-            "glucose_level": glucose_level,
-            "cholesterol": cholesterol,
-            "systolic_bp": systolic_bp,
-            "diastolic_bp": diastolic_bp
-        }])
+    if model:
+        try:
+            prediction = model.predict(input_df)[0]
+            st.success(f"✅ Predicted Status: {prediction}")
+        except Exception as e:
+            st.error(f"❌ Prediction failed: {e}")
+    else:
+        st.warning("⚠️ Model not loaded. Cannot make prediction.")
 
-        pred = int(model.predict(input_df)[0])
-        result = "🟢 Healthy" if pred == 0 else "🔴 Needs Medical Attention"
-
-        st.success(f"Prediction: {result}")
-    except Exception as e:
-        st.error(f"Error: {e}")
+# Show metadata
+if os.path.exists(METADATA_PATH):
+    with open(METADATA_PATH) as f:
+        metadata = json.load(f)
+    st.markdown(f"**Model Metadata:**\n```\n{json.dumps(metadata, indent=4)}\n```")
+else:
+    st.info("ℹ️ Metadata not found")

@@ -1,5 +1,7 @@
 import os
 import pandas as pd
+import joblib
+import json
 import mlflow
 import mlflow.sklearn
 import mlflow.xgboost
@@ -11,38 +13,36 @@ from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Input
 from tensorflow.keras.callbacks import EarlyStopping
-import joblib
-import json
 
-# -------------------------------------------------------------------
-# 📍 Project Paths (always relative to repo root)
-# -------------------------------------------------------------------
+# -----------------------------
+# 📁 Project Paths
+# -----------------------------
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DATA_DIR = os.path.join(BASE_DIR, "data", "processed")
 MODELS_DIR = os.path.join(BASE_DIR, "models")
 MLRUNS_DIR = os.path.join(BASE_DIR, "mlruns")
 
-os.makedirs(MLRUNS_DIR, exist_ok=True)
 os.makedirs(MODELS_DIR, exist_ok=True)
+os.makedirs(MLRUNS_DIR, exist_ok=True)
 
-# -------------------------------------------------------------------
-# ⚙️ Configure MLflow for Local + Render (portable)
-# -------------------------------------------------------------------
+# -----------------------------
+# ⚙️ Configure MLflow
+# -----------------------------
 mlflow.set_tracking_uri("file:///" + MLRUNS_DIR.replace("\\", "/"))
 mlflow.set_experiment("medical_checkup_models")
-
 print(f"✅ MLflow Tracking Directory: {MLRUNS_DIR}")
 
-# -------------------------------------------------------------------
+# -----------------------------
 # 🚀 Train and Log Models
-# -------------------------------------------------------------------
-def train_models(processed_data_dir: str):
-    print(f"📂 Loading data from: {processed_data_dir}")
+# -----------------------------
+def train_models(data_dir: str):
+    print(f"📂 Loading data from: {data_dir}")
 
-    X_train = pd.read_csv(os.path.join(processed_data_dir, "X_train.csv"))
-    X_test = pd.read_csv(os.path.join(processed_data_dir, "X_test.csv"))
-    y_train = pd.read_csv(os.path.join(processed_data_dir, "y_train.csv")).values.ravel()
-    y_test = pd.read_csv(os.path.join(processed_data_dir, "y_test.csv")).values.ravel()
+    # Load processed data
+    X_train = pd.read_csv(os.path.join(data_dir, "X_train.csv"))
+    X_test = pd.read_csv(os.path.join(data_dir, "X_test.csv"))
+    y_train = pd.read_csv(os.path.join(data_dir, "y_train.csv")).values.ravel()
+    y_test = pd.read_csv(os.path.join(data_dir, "y_test.csv")).values.ravel()
 
     results = {}
     trained_models = {}
@@ -61,7 +61,7 @@ def train_models(processed_data_dir: str):
 
         results["RandomForest"] = {"acc": acc, "run_id": run.info.run_id}
         trained_models["RandomForest"] = model
-        print(f"✅ RandomForest: {acc:.4f}")
+        print(f"✅ RandomForest Accuracy: {acc:.4f}")
 
     # 2️⃣ XGBoost
     with mlflow.start_run(run_name="XGBoost") as run:
@@ -83,7 +83,7 @@ def train_models(processed_data_dir: str):
 
         results["XGBoost"] = {"acc": acc, "run_id": run.info.run_id}
         trained_models["XGBoost"] = model
-        print(f"✅ XGBoost: {acc:.4f}")
+        print(f"✅ XGBoost Accuracy: {acc:.4f}")
 
     # 3️⃣ ANN
     with mlflow.start_run(run_name="ANN") as run:
@@ -109,14 +109,14 @@ def train_models(processed_data_dir: str):
 
         results["ANN"] = {"acc": acc, "run_id": run.info.run_id}
         trained_models["ANN"] = model
-        print(f"✅ ANN: {acc:.4f}")
+        print(f"✅ ANN Accuracy: {acc:.4f}")
 
-    # 🏆 Choose best model
+    # 🏆 Best Model
     best_model_name, best_info = max(results.items(), key=lambda x: x[1]["acc"])
     best_model = trained_models[best_model_name]
     print(f"\n🏆 Best Model: {best_model_name} ({best_info['acc']:.4f})")
 
-    # 🧾 Save model + metadata
+    # Save model and metadata
     model_path = os.path.join(MODELS_DIR, f"{best_model_name}_model.pkl")
     joblib.dump(best_model, model_path)
 
@@ -127,15 +127,15 @@ def train_models(processed_data_dir: str):
     print(f"✅ Saved model at: {model_path}")
     print(f"🧾 Metadata stored at: {metadata_path}")
 
-    # 🧠 Try model registry safely
+    # Optional: MLflow model registry
     try:
         mlflow.register_model(model_uri=f"runs:/{best_info['run_id']}/model", name=f"MedicalCheckup_{best_model_name}")
         print(f"✅ Registered model: MedicalCheckup_{best_model_name}")
     except Exception as e:
-        print(f"⚠️ Model registry skipped (likely local MLflow): {e}")
+        print(f"⚠️ Model registry skipped: {e}")
 
-# -------------------------------------------------------------------
+# -----------------------------
 # 🏁 Entry Point
-# -------------------------------------------------------------------
+# -----------------------------
 if __name__ == "__main__":
     train_models(DATA_DIR)
