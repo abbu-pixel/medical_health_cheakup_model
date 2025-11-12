@@ -1,4 +1,4 @@
-🧠 Medical Health Checkup Prediction – README.md
+
 # 🧠 Medical Health Checkup Prediction (MLOps End-to-End)
 
 An end-to-end **MLOps project** that predicts a person’s medical health status using physiological data.  
@@ -234,4 +234,5 @@ This project automates the entire ML workflow — from data versioning and train
 
 Would you like me to **add visuals (architecture diagram + pipeline image links)** at the top of this README (I can generate and provide them so you can upload to GitHub and link)?  
 It makes it look **industry-grade**, like a professional portfolio project.
+
 
