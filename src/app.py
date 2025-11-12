@@ -3,6 +3,7 @@ import pandas as pd
 import joblib
 import os
 import json
+import subprocess
 from glob import glob
 
 app = Flask(__name__)
@@ -12,6 +13,8 @@ app = Flask(__name__)
 # -----------------------------
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 MODELS_DIR = os.path.join(BASE_DIR, "models")
+REPORTS_DIR = os.path.join(BASE_DIR, "reports")
+DATA_DIR = os.path.join(BASE_DIR, "data", "processed")
 METADATA_FILENAME = "metadata.json"
 METADATA_PATH = os.path.join(MODELS_DIR, METADATA_FILENAME)
 
@@ -40,7 +43,37 @@ def load_model(model_path):
         print(f"[ERROR] Failed to load model: {e}")
         return None
 
-# Load the latest model at startup
+# -----------------------------
+# 🧠 Auto-generate drift report if missing
+# -----------------------------
+def generate_drift_report():
+    """Generate Evidently drift report and commit if not found."""
+    report_path = os.path.join(REPORTS_DIR, "data_drift_report.html")
+
+    if not os.path.exists(report_path):
+        print("[INFO] Drift report not found — generating new one...")
+        try:
+            subprocess.run(["python", "src/monitor.py"], check=True)
+
+            # Auto-commit and push drift report
+            subprocess.run(["git", "config", "user.name", "github-actions[bot]"])
+            subprocess.run(["git", "config", "user.email", "github-actions[bot]@users.noreply.github.com"])
+            subprocess.run(["git", "add", "reports/*"], check=False)
+            subprocess.run(["git", "commit", "-m", "🧾 Auto-generated drift report [skip ci]"], check=False)
+            subprocess.run(["git", "push", "origin", "main"], check=False)
+
+            print("✅ Drift report generated and committed successfully!")
+        except Exception as e:
+            print(f"[ERROR] Failed to generate drift report: {e}")
+    else:
+        print("[INFO] Drift report already exists — skipping regeneration.")
+
+# Run drift check at startup
+generate_drift_report()
+
+# -----------------------------
+# 🧩 Load Model
+# -----------------------------
 MODEL_PATH = get_latest_model(MODELS_DIR)
 model = load_model(MODEL_PATH)
 
@@ -63,7 +96,7 @@ def predict():
         gender_encoded = gender_map.get(data.get("gender"), 0)
 
         # 🔹 Match training feature order
-        input_df = pd.DataFrame([[
+        input_df = pd.DataFrame([[ 
             float(data.get("age")),
             gender_encoded,
             float(data.get("heart_rate")),
@@ -79,7 +112,6 @@ def predict():
             "systolic_bp", "diastolic_bp"
         ])
 
-        # 🔹 Predict
         prediction = model.predict(input_df)[0]
         result_text = "Healthy ✅" if prediction == 1 else "Needs Attention ⚠️"
 
@@ -87,23 +119,19 @@ def predict():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 @app.route("/monitor", methods=["GET"])
 def monitor_report():
     """Serve the Evidently data drift report as HTML."""
-    report_path = os.path.join(os.path.dirname(__file__), "..", "reports", "data_drift_report.html")
+    report_path = os.path.join(REPORTS_DIR, "data_drift_report.html")
 
     if os.path.exists(report_path):
         with open(report_path, "r", encoding="utf-8") as f:
             html = f.read()
-        # Optional auto-refresh every 10 seconds
-        html = html.replace(
-            "<head>",
-            "<head><meta http-equiv='refresh' content='10'>"
-        )
+        html = html.replace("<head>", "<head><meta http-equiv='refresh' content='10'>")
         return html
     else:
-        return "<h3 style='color:red;'>❌ Drift report not found. Please check your CI/CD pipeline or run monitor.py manually.</h3>"
-
+        return "<h3 style='color:red;'>❌ Drift report not found. Please check pipeline or rerun training.</h3>"
 
 # -----------------------------
 # 🚀 Run Server
