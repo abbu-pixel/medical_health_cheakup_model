@@ -1,8 +1,7 @@
 evidently==0.4.33
-streamlit
+
 mlflow
 xgboost
-tensorflow
 scikit-learn
 joblib
 pandas
