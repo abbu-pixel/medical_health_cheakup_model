@@ -5,14 +5,9 @@ import json
 import mlflow
 import mlflow.sklearn
 import mlflow.xgboost
-import mlflow.tensorflow
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from xgboost import XGBClassifier
-from sklearn.preprocessing import StandardScaler
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Input
-from tensorflow.keras.callbacks import EarlyStopping
 
 # -----------------------------
 # 📁 Project Paths
@@ -84,32 +79,6 @@ def train_models(data_dir: str):
         results["XGBoost"] = {"acc": acc, "run_id": run.info.run_id}
         trained_models["XGBoost"] = model
         print(f"✅ XGBoost Accuracy: {acc:.4f}")
-
-    # 3️⃣ ANN
-    with mlflow.start_run(run_name="ANN") as run:
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        X_test_scaled = scaler.transform(X_test)
-
-        model = Sequential([
-            Input(shape=(X_train.shape[1],)),
-            Dense(64, activation='relu'),
-            Dense(32, activation='relu'),
-            Dense(1, activation='sigmoid')
-        ])
-        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-        es = EarlyStopping(patience=3, restore_best_weights=True)
-
-        model.fit(X_train_scaled, y_train, validation_split=0.2, epochs=10, batch_size=32, verbose=1, callbacks=[es])
-        _, acc = model.evaluate(X_test_scaled, y_test, verbose=0)
-
-        mlflow.log_params({"layers": [64, 32], "activation": "relu", "epochs": 10, "batch_size": 32})
-        mlflow.log_metric("accuracy", acc)
-        mlflow.tensorflow.log_model(model, "model")
-
-        results["ANN"] = {"acc": acc, "run_id": run.info.run_id}
-        trained_models["ANN"] = model
-        print(f"✅ ANN Accuracy: {acc:.4f}")
 
     # 🏆 Best Model
     best_model_name, best_info = max(results.items(), key=lambda x: x[1]["acc"])
