@@ -1,0 +1,14 @@
+artifact_uri: file:///F:/mlops_project/mlruns/764845134455195256/d0402ec282634f178366b93d62f98f23/artifacts
+end_time: 1762853057299
+entry_point_name: ''
+experiment_id: '764845134455195256'
+lifecycle_stage: active
+run_id: d0402ec282634f178366b93d62f98f23
+run_name: XGBoost
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1762853046024
+status: 3
+tags: []
+user_id: CITDEC

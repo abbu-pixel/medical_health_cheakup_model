@@ -1,0 +1,14 @@
+artifact_uri: file:///F:/mlops_project/mlruns/764845134455195256/645b06980ef54739bf4cccc799a4a5aa/artifacts
+end_time: 1762754274198
+entry_point_name: ''
+experiment_id: '764845134455195256'
+lifecycle_stage: active
+run_id: 645b06980ef54739bf4cccc799a4a5aa
+run_name: ANN
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1762753942791
+status: 3
+tags: []
+user_id: CITDEC

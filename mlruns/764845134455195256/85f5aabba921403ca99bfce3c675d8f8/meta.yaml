@@ -1,0 +1,14 @@
+artifact_uri: file:///F:/mlops_project/mlruns/764845134455195256/85f5aabba921403ca99bfce3c675d8f8/artifacts
+end_time: 1762753932073
+entry_point_name: ''
+experiment_id: '764845134455195256'
+lifecycle_stage: active
+run_id: 85f5aabba921403ca99bfce3c675d8f8
+run_name: RandomForest
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1762753814024
+status: 3
+tags: []
+user_id: CITDEC
