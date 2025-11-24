@@ -52,7 +52,9 @@ def train_models(data_dir: str):
 
         mlflow.log_params(params)
         mlflow.log_metric("accuracy", acc)
-        mlflow.sklearn.log_model(model, "model")
+
+        # FIXED: safe artifact folder
+        mlflow.sklearn.log_model(model, artifact_path="logged_model")
 
         results["RandomForest"] = {"acc": acc, "run_id": run.info.run_id}
         trained_models["RandomForest"] = model
@@ -74,7 +76,9 @@ def train_models(data_dir: str):
 
         mlflow.log_params(params)
         mlflow.log_metric("accuracy", acc)
-        mlflow.xgboost.log_model(model, "model")
+
+        # FIXED: safe artifact folder
+        mlflow.xgboost.log_model(model, artifact_path="logged_model")
 
         results["XGBoost"] = {"acc": acc, "run_id": run.info.run_id}
         trained_models["XGBoost"] = model
@@ -98,7 +102,10 @@ def train_models(data_dir: str):
 
     # Optional: MLflow model registry
     try:
-        mlflow.register_model(model_uri=f"runs:/{best_info['run_id']}/model", name=f"MedicalCheckup_{best_model_name}")
+        mlflow.register_model(
+            model_uri=f"runs:/{best_info['run_id']}/logged_model",
+            name=f"MedicalCheckup_{best_model_name}"
+        )
         print(f"✅ Registered model: MedicalCheckup_{best_model_name}")
     except Exception as e:
         print(f"⚠️ Model registry skipped: {e}")
