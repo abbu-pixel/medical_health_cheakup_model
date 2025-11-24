@@ -21,9 +21,11 @@ os.makedirs(MODELS_DIR, exist_ok=True)
 os.makedirs(MLRUNS_DIR, exist_ok=True)
 
 # -----------------------------
-# ⚙️ Configure MLflow
+# ⚙️ Configure MLflow (SAFE)
 # -----------------------------
-mlflow.set_tracking_uri("file:///" + MLRUNS_DIR.replace("\\", "/"))
+# ❗ DO NOT use file:/// — breaks on GitHub Linux runner
+mlflow.set_tracking_uri(MLRUNS_DIR)
+
 mlflow.set_experiment("medical_checkup_models")
 print(f"✅ MLflow Tracking Directory: {MLRUNS_DIR}")
 
@@ -47,17 +49,19 @@ def train_models(data_dir: str):
         params = {"n_estimators": 150, "max_depth": 10, "random_state": 42}
         model = RandomForestClassifier(**params)
         model.fit(X_train, y_train)
+
         preds = model.predict(X_test)
         acc = accuracy_score(y_test, preds)
 
         mlflow.log_params(params)
         mlflow.log_metric("accuracy", acc)
 
-        # FIXED: safe artifact folder
+        # 💥 MUST BE RELATIVE PATH (fixed)
         mlflow.sklearn.log_model(model, artifact_path="logged_model")
 
         results["RandomForest"] = {"acc": acc, "run_id": run.info.run_id}
         trained_models["RandomForest"] = model
+
         print(f"✅ RandomForest Accuracy: {acc:.4f}")
 
     # 2️⃣ XGBoost
@@ -69,38 +73,46 @@ def train_models(data_dir: str):
             "eval_metric": "logloss",
             "random_state": 42
         }
+
         model = XGBClassifier(**params)
         model.fit(X_train, y_train)
+
         preds = model.predict(X_test)
         acc = accuracy_score(y_test, preds)
 
         mlflow.log_params(params)
         mlflow.log_metric("accuracy", acc)
 
-        # FIXED: safe artifact folder
+        # 💥 MUST BE RELATIVE PATH (fixed)
         mlflow.xgboost.log_model(model, artifact_path="logged_model")
 
         results["XGBoost"] = {"acc": acc, "run_id": run.info.run_id}
         trained_models["XGBoost"] = model
+
         print(f"✅ XGBoost Accuracy: {acc:.4f}")
 
     # 🏆 Best Model
     best_model_name, best_info = max(results.items(), key=lambda x: x[1]["acc"])
     best_model = trained_models[best_model_name]
+
     print(f"\n🏆 Best Model: {best_model_name} ({best_info['acc']:.4f})")
 
-    # Save model and metadata
+    # Save model outside MLflow
     model_path = os.path.join(MODELS_DIR, f"{best_model_name}_model.pkl")
     joblib.dump(best_model, model_path)
 
     metadata_path = os.path.join(MODELS_DIR, "metadata.json")
     with open(metadata_path, "w") as f:
-        json.dump({"best_model": best_model_name, "accuracy": best_info["acc"]}, f, indent=4)
+        json.dump(
+            {"best_model": best_model_name, "accuracy": best_info["acc"]},
+            f,
+            indent=4
+        )
 
-    print(f"✅ Saved model at: {model_path}")
+    print(f"✅ Saved best model at: {model_path}")
     print(f"🧾 Metadata stored at: {metadata_path}")
 
-    # Optional: MLflow model registry
+    # Register best model
     try:
         mlflow.register_model(
             model_uri=f"runs:/{best_info['run_id']}/logged_model",
