@@ -1,4 +1,4 @@
-import os
+  import os
 import pandas as pd
 import joblib
 import json
@@ -21,9 +21,17 @@ os.makedirs(MODELS_DIR, exist_ok=True)
 os.makedirs(MLRUNS_DIR, exist_ok=True)
 
 # -----------------------------
-# ⚙️ Configure MLflow (SAFE)
+# 🚫 RESET DAGSHUB / REMOTE MLflow CONFIG
 # -----------------------------
-# ❗ DO NOT use file:/// — breaks on GitHub Linux runner
+# This removes any previously cached remote MLflow configuration
+mlflow.set_tracking_uri(None)
+os.environ["MLFLOW_TRACKING_URI"] = ""
+os.environ["MLFLOW_REGISTRY_URI"] = ""
+
+# -----------------------------
+# ⚙️ LOCAL MLflow Setup (CI/CD Safe)
+# -----------------------------
+# Use only local folder for MLflow tracking on GitHub Actions
 mlflow.set_tracking_uri(MLRUNS_DIR)
 
 mlflow.set_experiment("medical_checkup_models")
@@ -56,7 +64,7 @@ def train_models(data_dir: str):
         mlflow.log_params(params)
         mlflow.log_metric("accuracy", acc)
 
-        # 💥 MUST BE RELATIVE PATH (fixed)
+        # SAFE artifact path
         mlflow.sklearn.log_model(model, artifact_path="logged_model")
 
         results["RandomForest"] = {"acc": acc, "run_id": run.info.run_id}
@@ -83,7 +91,7 @@ def train_models(data_dir: str):
         mlflow.log_params(params)
         mlflow.log_metric("accuracy", acc)
 
-        # 💥 MUST BE RELATIVE PATH (fixed)
+        # SAFE artifact path
         mlflow.xgboost.log_model(model, artifact_path="logged_model")
 
         results["XGBoost"] = {"acc": acc, "run_id": run.info.run_id}
@@ -97,7 +105,7 @@ def train_models(data_dir: str):
 
     print(f"\n🏆 Best Model: {best_model_name} ({best_info['acc']:.4f})")
 
-    # Save model outside MLflow
+    # Save model
     model_path = os.path.join(MODELS_DIR, f"{best_model_name}_model.pkl")
     joblib.dump(best_model, model_path)
 
@@ -112,7 +120,7 @@ def train_models(data_dir: str):
     print(f"✅ Saved best model at: {model_path}")
     print(f"🧾 Metadata stored at: {metadata_path}")
 
-    # Register best model
+    # Register in mlflow local registry
     try:
         mlflow.register_model(
             model_uri=f"runs:/{best_info['run_id']}/logged_model",
